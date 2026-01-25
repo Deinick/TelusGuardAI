@@ -1,12 +1,14 @@
-# Network Impact Analyzer
+# TelusGaurdAI
 
-An AI-powered platform for analyzing network service disruptions during natural and infrastructure events. The system uses a multi-agent orchestration pipeline to interpret natural language queries, gather intelligence from web and weather sources, and produce geospatial impact assessments with tower-level KPIs.
+An AI-powered platform for analyzing TELUS network service disruptions during natural and infrastructure events. The system uses a multi-agent orchestration pipeline to interpret natural language queries, gather intelligence from web and weather sources, and produce geospatial impact assessments with TELUS tower-level KPIs.
 
 ---
 
 ## Overview
 
-The Network Impact Analyzer helps operations teams assess where and how strongly network outages or degradations occur in response to events such as ice storms, floods, power outages, or large-scale gatherings. Users ask questions in plain language (e.g., *"What areas were affected by the ice storm in Toronto?"*), and the system returns structured events, affected geographic areas, severity, confidence scores, and suggested mitigation actions—all visualized on an interactive map with tower coverage and KPI overlays.
+The TELUS Network Impact Analyzer helps TELUS operations teams assess where and how strongly network outages or degradations occur in response to events such as ice storms, floods, power outages, or large-scale gatherings. Users ask questions in plain language (e.g., *"What areas were affected by the ice storm in Toronto?"*), and the system returns structured events, affected geographic areas, severity, confidence scores, and suggested mitigation actions—all visualized on an interactive map with TELUS tower coverage and KPI overlays.
+
+**Note:** This system is specifically designed for and limited to **TELUS network infrastructure** (MCC 302, MNC 720) in Canada.
 
 ---
 
@@ -18,13 +20,13 @@ The backend is built around a **three-agent orchestration** model:
 |-------|------|
 | **Event Intelligence** | Parses the user query to extract event types, locations, timeframes, and search keywords. |
 | **Web Intelligence** | Runs web searches and (when relevant) fetches weather data to support impact reasoning. |
-| **Geospatial Reasoning** | Analyzes gathered data and LLM knowledge to produce events with affected areas, lat/long bounds, severity, and confidence. |
+| **Geospatial Reasoning** | Analyzes gathered data and LLM knowledge to produce events with affected areas, lat/long bounds, severity, and confidence for TELUS towers. |
 
 Results are cached, filtered by confidence and `max_areas`, and returned as structured JSON. The frontend consumes this API to drive an interactive **React + Leaflet** dashboard with:
 
 - **Event Analysis** — Natural language input and analysis triggers
-- **Network Coverage Map** — Towers, heatmaps, and impact zones with selection
-- **Details & Impact Panels** — Tower-level KPIs (traffic, latency, packet loss, energy) and area-level reports
+- **TELUS Network Coverage Map** — TELUS towers, heatmaps, and impact zones with selection
+- **Details & Impact Panels** — TELUS tower-level KPIs (traffic, latency, packet loss, energy) and area-level reports
 
 ---
 
@@ -34,7 +36,7 @@ Results are cached, filtered by confidence and `max_areas`, and returned as stru
 |-------|--------------|
 | **Backend** | Python 3, Flask, Flask-CORS, aiohttp, BeautifulSoup |
 | **AI / LLMs** | Gemma, DeepSeek, GPT (configurable endpoints) |
-| **Data** | OpenWeather API, custom web search, Canada city coordinates, Zenodo KPI time series, tower CSVs |
+| **Data** | OpenWeather API, custom web search, Canada city coordinates, Zenodo KPI time series, TELUS tower CSVs |
 | **Frontend** | React 19, Vite, React Router, Leaflet, Leaflet.heat |
 
 ---
@@ -50,20 +52,20 @@ The project uses the **[Network operator KPIs time series dataset](https://zenod
 
 Place Zenodo-derived `r1.txt` (or compatible) files where the loader expects them and wire them into the KPI pipeline as needed. *(Add the specific Zenodo record URL or DOI here when available.)*
 
-### Tower data (`frontend/src/data/`)
+### TELUS Tower data (`frontend/src/data/`)
 
-The project uses tower data derived from the **OpenCellID API**, a global open database of cellular infrastructure. This data provides:
+The project uses TELUS tower data derived from the **OpenCellID API**, a global open database of cellular infrastructure. This data is **filtered exclusively for TELUS towers** in Canada, providing:
 
-- **Tower geographic coordinates** (latitude, longitude)  
+- **TELUS tower geographic coordinates** (latitude, longitude)  
 - **Network type / radio technology** (e.g., LTE, NR)  
-- **Mobile Country Code (MCC)** and **Mobile Network Code (MNC)** for operator identification (e.g., TELUS)  
+- **Mobile Country Code (MCC) 302** (Canada) and **Mobile Network Code (MNC) 720** (TELUS)
 - **Coverage range estimates**  
 - **Sample counts** indicating data reliability
   
 | File | Description |
 |------|-------------|
-| **`302.csv`** | Raw cell/tower data (MCC 302 = Canada). Columns include `radio`, `mcc`, `mnc`, `cell_id`, `lon`, `lat`, `range`, `samples`. |
-| **`telus_towers.json`** | TELUS towers (MNC 720) derived from `302.csv`. Used by the coverage map and KPI views. |
+| **`302.csv`** | Raw cell/tower data (MCC 302 = Canada). Contains all Canadian carriers. |
+| **`telus_towers.json`** | **TELUS-only towers** (MNC 720) derived from `302.csv`. Used exclusively by the coverage map and KPI views. |
 
 To regenerate `telus_towers.json` from `302.csv`:
 
@@ -72,7 +74,9 @@ cd frontend
 python convert_csv_to_json.py
 ```
 
-`convert_csv_to_json.py` filters `302.csv` to `mcc=302` and `mnc=720` (TELUS) and writes `id`, `lat`, `lon`, `radio`, `mcc`, `mnc`, `range`, `samples` per tower.
+`convert_csv_to_json.py` filters `302.csv` to `mcc=302` and `mnc=720` (TELUS only) and writes `id`, `lat`, `lon`, `radio`, `mcc`, `mnc`, `range`, `samples` per tower.
+
+**Important:** The system only analyzes and displays TELUS network infrastructure. Other carriers (Rogers, Bell, Shaw) are filtered out.
 
 ---
 
@@ -82,7 +86,7 @@ python convert_csv_to_json.py
 > ```bash
 > git clone -b integrate/frontend-into-layout <repository-url>
 > ```
-> Or, if you’ve already cloned: `git checkout integrate/frontend-into-layout`
+> Or, if you've already cloned: `git checkout integrate/frontend-into-layout`
 
 ### Prerequisites
 
@@ -126,8 +130,8 @@ The app is served by Vite (typically **http://localhost:5173**). Ensure the back
 |--------|------|-------------|
 | `GET` | `/` | Service info and endpoint list |
 | `GET` | `/health` | Health check and config summary |
-| `POST` | `/api/analyze-network-impact` | Run analysis from a natural language `question` |
-| `POST` | `/api/kpis` | Fetch KPIs for given `tower_ids` |
+| `POST` | `/api/analyze-network-impact` | Run analysis from a natural language `question` (TELUS network only) |
+| `POST` | `/api/kpis` | Fetch KPIs for given TELUS `tower_ids` |
 | `GET` | `/api/cache-stats` | Cache statistics |
 | `GET` | `/api/cached-queries` | List cached analysis queries |
 | `POST` | `/api/clear-cache` | Clear analysis cache |
@@ -137,7 +141,7 @@ Example analysis request:
 
 ```json
 {
-  "question": "What areas were affected by the ice storm in Toronto?",
+  "question": "What TELUS coverage areas were affected by the ice storm in Toronto?",
   "options": {
     "max_areas": 10,
     "min_confidence": 0.7,
@@ -166,12 +170,12 @@ Full request/response schemas and `AffectedArea` / `Event` structures are descri
 │   ├── data/               # Canada city coordinates and related
 │   └── utils/              # Logger, cache
 ├── frontend/
-│   ├── convert_csv_to_json.py   # 302.csv → telus_towers.json
+│   ├── convert_csv_to_json.py   # 302.csv → telus_towers.json (TELUS only)
 │   ├── src/
 │   │   ├── App.jsx
 │   │   ├── pages/          # DashboardPage, CoverageMapPage
 │   │   ├── components/     # EventPanel, CoverageMap, DetailsPanel, etc.
-│   │   └── data/           # 302.csv, telus_towers.json
+│   │   └── data/           # 302.csv, telus_towers.json (TELUS only)
 │   └── vite.config.js
 └── README.md
 ```
@@ -195,7 +199,19 @@ AI model endpoints and tokens are defined in `backend/config.py`; use environmen
 - **AffectedArea** — `area_name`, `severity`, `lat_range`, `long_range`, `center`, `reasoning`, `estimated_impact`, `confidence`, `data_points`
 - **AnalysisResult** — `query`, `timestamp`, `summary`, `events`, `total_events`, `total_affected_areas`, `analysis_metadata`
 
-Severity: `critical` \| `high` \| `moderate` \| `low`. See `/api/docs` for full field definitions.
+Severity: `critical` | `high` | `moderate` | `low`. See `/api/docs` for full field definitions.
+
+---
+
+## Network Scope
+
+This platform is designed exclusively for **TELUS network infrastructure** analysis:
+- **MCC (Mobile Country Code):** 302 (Canada)
+- **MNC (Mobile Network Code):** 720 (TELUS)
+- **Coverage:** TELUS towers across Canada
+- **Data Source:** OpenCellID database, filtered for TELUS only
+
+Other Canadian carriers (Rogers MNC 720, Bell MNC 610, Shaw, etc.) are not included in this analysis platform.
 
 ---
 
