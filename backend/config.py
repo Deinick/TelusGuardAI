@@ -1,5 +1,6 @@
 """
-Configuration settings for Network Impact Analyzer
+Configuration for Network Impact Analyzer and NetOps.
+Secrets: set via .env (see .env.example). No token defaults in code.
 """
 
 import os
@@ -8,35 +9,57 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+def _project_root() -> str:
+    """Project root (parent of backend/). Override with env PROJECT_ROOT."""
+    return os.getenv("PROJECT_ROOT") or os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..")
+    )
+
+
 class Config:
-    """Central configuration for all AI models and APIs"""
-    
+    """Central configuration for AI models, APIs, and NetOps."""
+
     # ========================================================================
-    # AI MODEL ENDPOINTS
+    # DATA PATHS (override with env: PROJECT_ROOT, ZENODO_BASE, TOWERS_JSON)
     # ========================================================================
-    
-    GEMMA_ENDPOINT = "https://gemma-3-27b-3ca9s.paas.ai.telus.com"
-    GEMMA_TOKEN = "REDACTED_GEMMA_TOKEN"
-    
-    DEEPSEEK_ENDPOINT = "https://deepseekv32-3ca9s.paas.ai.telus.com"
-    DEEPSEEK_TOKEN = "REDACTED_DEEPSEEK_TOKEN"
-    
-    GPT_ENDPOINT = "https://rr-test-gpt-120-9219s.paas.ai.telus.com"
-    GPT_TOKEN = "REDACTED_GPT_TOKEN"
-    
-    QWEN_CODER_ENDPOINT = "https://qwen3coder30b-3ca9s.paas.ai.telus.com"
-    QWEN_CODER_TOKEN = "REDACTED_QWEN_CODER_TOKEN"
-    
-    QWEN_EMB_ENDPOINT = "https://qwen-emb-3ca9s.paas.ai.telus.com"
-    QWEN_EMB_TOKEN = "REDACTED_QWEN_EMB_TOKEN"
-    
+    PROJECT_ROOT = _project_root()
+    ZENODO_BASE = os.getenv("ZENODO_BASE") or os.path.join(
+        PROJECT_ROOT, "data", "zenodo", "network_operator_KPIs_time_series_dataset"
+    )
+    TOWERS_JSON = os.getenv("TOWERS_JSON") or os.path.join(
+        PROJECT_ROOT, "data", "towers", "telus_towers.json"
+    )
+
+    # ========================================================================
+    # NETOPS – Option A: default tower limit for /api/towers, /api/kpis.
+    # Keeps map and KPI generation fast. Use limit=None for no cap.
+    # ========================================================================
+    NETOPS_TOWER_LIMIT = int(os.getenv("NETOPS_TOWER_LIMIT", "2000"))
+
+    # ========================================================================
+    # AI MODEL ENDPOINTS (tokens from .env only; endpoints have fallbacks)
+    # ========================================================================
+    GEMMA_ENDPOINT = os.getenv("GEMMA_ENDPOINT", "https://gemma-3-27b-3ca9s.paas.ai.telus.com")
+    GEMMA_TOKEN = os.getenv("GEMMA_TOKEN")
+
+    DEEPSEEK_ENDPOINT = os.getenv("DEEPSEEK_ENDPOINT", "https://deepseekv32-3ca9s.paas.ai.telus.com")
+    DEEPSEEK_TOKEN = os.getenv("DEEPSEEK_TOKEN")
+
+    GPT_ENDPOINT = os.getenv("GPT_ENDPOINT", "https://rr-test-gpt-120-9219s.paas.ai.telus.com")
+    GPT_TOKEN = os.getenv("GPT_TOKEN")
+
+    QWEN_CODER_ENDPOINT = os.getenv("QWEN_CODER_ENDPOINT", "https://qwen3coder30b-3ca9s.paas.ai.telus.com")
+    QWEN_CODER_TOKEN = os.getenv("QWEN_CODER_TOKEN")
+
+    QWEN_EMB_ENDPOINT = os.getenv("QWEN_EMB_ENDPOINT", "https://qwen-emb-3ca9s.paas.ai.telus.com")
+    QWEN_EMB_TOKEN = os.getenv("QWEN_EMB_TOKEN")
+
     # ========================================================================
     # EXTERNAL APIS
     # ========================================================================
-    
-    OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY", "REDACTED_OPENWEATHER_KEY")
-    OPENWEATHER_BASE_URL = "https://api.openweathermap.org/data/2.5"
-    
+    OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
+    OPENWEATHER_BASE_URL = os.getenv("OPENWEATHER_BASE_URL", "https://api.openweathermap.org/data/2.5")
+
     # ========================================================================
     # SYSTEM SETTINGS
     # ========================================================================
