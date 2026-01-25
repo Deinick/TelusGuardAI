@@ -56,6 +56,7 @@ def home():
         "endpoints": {
             "health": "/health",
             "analyze": "/api/analyze-network-impact (POST)",
+            "kpis": "/api/kpis (POST)",
             "cache_stats": "/api/cache-stats (GET)",
             "cached_queries": "/api/cached-queries (GET)",
             "clear_cache": "/api/clear-cache (POST)"
@@ -155,6 +156,38 @@ def analyze_network_impact():
             "message": str(e),
             "timestamp": datetime.now().isoformat()
         }), 500
+
+
+@app.route('/api/kpis', methods=['POST', 'OPTIONS'])
+def get_kpis():
+    """
+    Return KPIs for requested tower_ids. Frontend expects:
+    { kpis: { [tower_id]: { traffic, latency_ms, packet_loss, energy, status } } }
+    Uses simulated data when no KPI service is connected.
+    """
+    if request.method == "OPTIONS":
+        return "", 200
+    try:
+        data = request.get_json() or {}
+        tower_ids = data.get("tower_ids") or []
+        if not isinstance(tower_ids, list):
+            tower_ids = []
+        kpis = {}
+        for tid in tower_ids[:1000]:
+            tid = str(tid)
+            # Deterministic-ish values per id for stable display
+            h = hash(tid) % 10000 / 10000.0
+            kpis[tid] = {
+                "traffic": 0.3 + (h * 0.6),
+                "latency_ms": int(20 + (h * 80)),
+                "packet_loss": round(0.005 + (h * 0.03), 4),
+                "energy": 0.5 + (h * 0.4),
+                "status": "degraded" if h > 0.7 else ("down" if h > 0.9 else "ok"),
+            }
+        return jsonify({"kpis": kpis, "timestamp": datetime.now().isoformat()}), 200
+    except Exception as e:
+        logger.error(f"💥 Error in KPIs endpoint: {str(e)}")
+        return jsonify({"kpis": {}, "error": str(e), "timestamp": datetime.now().isoformat()}), 500
 
 
 @app.route('/api/cache-stats', methods=['GET'])
@@ -306,6 +339,7 @@ def not_found(error):
             "/",
             "/health",
             "/api/analyze-network-impact",
+            "/api/kpis",
             "/api/cache-stats",
             "/api/cached-queries",
             "/api/clear-cache",
