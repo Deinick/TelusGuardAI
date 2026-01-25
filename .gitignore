@@ -1,2 +1,4 @@
 venv/
 backend/scripts/
+.env
+.DS_Store
