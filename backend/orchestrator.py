@@ -196,6 +196,8 @@ class NetworkImpactOrchestrator:
         logger.info(f"🔍 Applying filters: max_areas={max_areas}, min_confidence={min_confidence}")
         
         filtered_events = []
+
+        min_confidence = 0.2
         
         for event in events:
             # Filter areas by confidence
