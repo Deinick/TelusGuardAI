@@ -2,6 +2,7 @@
 Main orchestrator coordinating all agents
 """
 
+import json
 import time
 from datetime import datetime
 from typing import Dict, Any, List
@@ -85,7 +86,7 @@ class NetworkImpactOrchestrator:
         intelligence_data = await WebIntelligenceAgent.gather_intelligence(
             event_metadata
         )
-        
+
         # ====================================================================
         # STEP 3: Geospatial Reasoning Agent
         # ====================================================================

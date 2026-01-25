@@ -4,11 +4,13 @@ Gathers data from web searches and weather APIs
 """
 
 import asyncio
-from typing import Dict, Any, Optional
+from typing import Dict, Tuple, Optional, Any
+import unicodedata
 from models.data_models import EventMetadata, IntelligenceData
 from services.web_search import WebSearcher
 from services.weather_api import WeatherAPI
 from utils.logger import logger, timing_decorator
+from data.canada_city_coords import CANADA_CITY_COORDS, normalize_location
 
 
 class WebIntelligenceAgent:
@@ -139,31 +141,17 @@ class WebIntelligenceAgent:
         if not event_metadata.events:
             return None
         
-        location = event_metadata.events[0].get("primary_location", "").lower()
+        raw_location = event_metadata.events[0].get("primary_location", "").lower()
         
-        # Hardcoded coordinates for common Canadian cities
-        # TODO: Replace with real geocoding service
-        CITY_COORDS = {
-            "toronto": (43.6532, -79.3832),
-            "mississauga": (43.5890, -79.6441),
-            "vancouver": (49.2827, -123.1207),
-            "montreal": (45.5017, -73.5673),
-            "calgary": (51.0447, -114.0719),
-            "ottawa": (45.4215, -75.6972),
-            "edmonton": (53.5461, -113.4938),
-            "winnipeg": (49.8951, -97.1384),
-            "quebec city": (46.8139, -71.2080),
-            "hamilton": (43.2557, -79.8711),
-        }
-        
-        for city, coords in CITY_COORDS.items():
+        location = normalize_location(raw_location)
+
+        for city, coords in CANADA_CITY_COORDS.items():
             if city in location:
-                logger.info(f"📍 Using coordinates for {city.title()}: {coords}")
                 return coords
         
         # Default to Toronto if location not found
         logger.warning(f"⚠️  Location '{location}' not found, defaulting to Toronto")
-        return CITY_COORDS["toronto"]
+        return (43.6532, -79.3832)
     
     @staticmethod
     def _deduplicate_results(results: list) -> list:

@@ -74,7 +74,7 @@ class AIModelClient:
             url = f"{endpoint}/v1/chat/completions"
         else:
             payload = {
-                "model": "gpt-oss-120b",
+                "model": "gpt-oss-120b-sovereign:latest",
                 "prompt": prompt,
                 "max_tokens": max_tokens,
                 "temperature": temperature,

@@ -43,6 +43,12 @@ Your task is to parse the user's question and extract:
 3. Timeframes (when the event occurred)
 4. Keywords for effective web searching
 
+Do NOT include:
+- Carrier outage pages (Telus, Rogers, Bell)
+- User-generated outage maps (Downdetector, Outage.Report, NetStats)
+- Forums or social media complaints (Reddit, X, etc.)
+- Any links that only report outages without context
+
 Return ONLY valid JSON in this exact format:
 {
     "events": [
@@ -65,11 +71,12 @@ Return ONLY valid JSON in this exact format:
 }
 
 IMPORTANT RULES:
+- YOU ARE IN THE YEAR 2026. ONLY SEARCH 2026 INFORMATION.
 - Generate 3-5 highly targeted search queries optimized for finding network outage information
-- Include variations with "network outage", "cellular service", "telus", "rogers", "bell"
 - If weather-related, include weather search queries
-- Be specific with location names
+- Be very specific with location names** (city, neighborhood, province) whenever mentioned.
 - Include temporal terms in searches (today, yesterday, January 2026, etc.)
+- Focus on sources like news reports, government bulletins, press releases, research papers — no outage maps or carrier pages.
 - Return ONLY the JSON, no markdown formatting, no explanations"""
 
         # Construct user prompt
