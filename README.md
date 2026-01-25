@@ -70,6 +70,12 @@ python convert_csv_to_json.py
 
 ## Getting Started
 
+> **Note:** Clone the repository with the `integrate/frontend-into-layout` branch:
+> ```bash
+> git clone -b integrate/frontend-into-layout <repository-url>
+> ```
+> Or, if you’ve already cloned: `git checkout integrate/frontend-into-layout`
+
 ### Prerequisites
 
 - **Python 3.10+**
