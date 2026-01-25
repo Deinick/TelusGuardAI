@@ -52,6 +52,14 @@ Place Zenodo-derived `r1.txt` (or compatible) files where the loader expects the
 
 ### Tower data (`frontend/src/data/`)
 
+The project uses tower data derived from the **OpenCellID API**, a global open database of cellular infrastructure. This data provides:
+
+- **Tower geographic coordinates** (latitude, longitude)  
+- **Network type / radio technology** (e.g., LTE, NR)  
+- **Mobile Country Code (MCC)** and **Mobile Network Code (MNC)** for operator identification (e.g., TELUS)  
+- **Coverage range estimates**  
+- **Sample counts** indicating data reliability
+  
 | File | Description |
 |------|-------------|
 | **`302.csv`** | Raw cell/tower data (MCC 302 = Canada). Columns include `radio`, `mcc`, `mnc`, `cell_id`, `lon`, `lat`, `range`, `samples`. |
