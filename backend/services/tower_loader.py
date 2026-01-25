@@ -1,5 +1,5 @@
 import json
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional
 
 def load_towers_json(path: str) -> List[Dict[str, Any]]: 
     with open(path, "r") as f: 
@@ -9,17 +9,19 @@ def filter_towers_bbox(
         towers: List[Dict[str, Any]], 
         lat_min: float, lat_max: float,
         lon_min: float, lon_max: float,
-        limit: int = 80
+        limit: Optional[int] = None
 ) -> List[Dict[str, Any]]:
     """
-    Filters towers inside a bounding box (good for one city region).
-    Limit keeps UI fast.    
-    """
+    Filters towers inside a bounding box. Use CANADA_BBOX for nation-wide.
 
+    limit: max towers to return; None = no limit (all in bbox).
+    """
     selected = [
         t for t in towers
         if lat_min <= t["lat"] <= lat_max and lon_min <= t["lon"] <= lon_max
     ]
-    return selected[:limit]
+    return selected if limit is None else selected[:limit]
 
-VANCOUVER_BBOX = (49.20, 49.33, -123.25, -123.00)
+
+# Canada-wide: ~41°N–84°N, ~142°W–52°W (all provinces/territories)
+CANADA_BBOX = (41.0, 84.0, -142.0, -52.0)
