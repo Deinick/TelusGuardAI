@@ -1,4 +1,4 @@
-# TelusGaurdAI
+# TelusGuardAI
 
 An AI-powered platform for analyzing TELUS network service disruptions during natural and infrastructure events. The system uses a multi-agent orchestration pipeline to interpret natural language queries, gather intelligence from web and weather sources, and produce geospatial impact assessments with TELUS tower-level KPIs.
 
