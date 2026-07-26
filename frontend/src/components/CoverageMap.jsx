@@ -468,7 +468,7 @@ export default function CoverageMap({
 
   return (
     <div style={{ height: "80vh", width: "100%", position: "relative" }}>
-      <MapContainer center={center} zoom={zoom} style={{ height: "100%", width: "100%" }}>
+      <MapContainer center={center} zoom={zoom} preferCanvas style={{ height: "100%", width: "100%" }}>
         <TileLayer
           attribution="&copy; OpenStreetMap contributors"
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

@@ -1,8 +1,11 @@
-import { useEffect, useMemo, useState, useRef, useCallback } from "react";
-import { Link } from "react-router-dom";
-import towersData from "../data/telus_towers.json";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import CoverageMap from "../components/CoverageMap.jsx";
+import { simulateKpi } from "../lib/simulateKpi.js";
 import L from "leaflet";
+
+// Set VITE_DEMO_MODE=true at build time (see .env.production) for static
+// deployments (e.g. GitHub Pages) that have no backend to call.
+const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === "true";
 
 // Helper function to count towers inside an impact area
 function countTowersInArea(area, towers) {
@@ -40,6 +43,23 @@ function severityToScore(sev) {
 }
 
 export default function CoverageMapPage() {
+  // Tower dataset (~17k towers, ~2.7MB) is fetched at runtime from /public
+  // rather than bundled into the JS chunk, so the app starts up fast.
+  const [towersData, setTowersData] = useState([]);
+  const [towersLoading, setTowersLoading] = useState(true);
+  const [towersError, setTowersError] = useState(null);
+
+  useEffect(() => {
+    fetch(`${import.meta.env.BASE_URL}telus_towers.json`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`Failed to load tower data: ${res.status}`);
+        return res.json();
+      })
+      .then((data) => setTowersData(data))
+      .catch((e) => setTowersError(e.message || String(e)))
+      .finally(() => setTowersLoading(false));
+  }, []);
+
   // Filters
   const [radio, setRadio] = useState("ALL");
 
@@ -65,13 +85,21 @@ export default function CoverageMapPage() {
 
   const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:5001";
   const ANALYZE_PATH = "/api/analyze-network-impact";
-  const KPIS_PATH = "/api/kpis";  
 
   async function runAgent() {
+    setIsRunning(true);
+    setAgentError(null);
+
+    if (DEMO_MODE) {
+      // No backend on a static deploy: show the bundled sample scenario
+      // instead of firing a network request that can only fail.
+      await new Promise((r) => setTimeout(r, 500));
+      setAgentResponse({ ...mockAgentResponse, _demo: true });
+      setIsRunning(false);
+      return;
+    }
+
     try {
-      setIsRunning(true);
-      setAgentError(null);
-  
       const res = await fetch(`${API_BASE}${ANALYZE_PATH}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -84,12 +112,12 @@ export default function CoverageMapPage() {
           },
         }),
       });
-  
+
       if (!res.ok) {
         const text = await res.text();
         throw new Error(`Backend ${res.status}: ${text}`);
       }
-  
+
       const data = await res.json();
       setAgentResponse(data);
     } catch (e) {
@@ -98,7 +126,7 @@ export default function CoverageMapPage() {
       setIsRunning(false);
     }
   }
-  
+
 
   // Use backend response if available; otherwise fallback to mock (so the demo never breaks)
   // ============================
@@ -109,16 +137,16 @@ export default function CoverageMapPage() {
   const radios = useMemo(() => {
     const set = new Set(towersData.map((t) => t.radio));
     return ["ALL", ...Array.from(set)];
-  }, []);
+  }, [towersData]);
 
   const filtered = useMemo(() => {
     if (radio === "ALL") return towersData;
     return towersData.filter((t) => t.radio === radio);
-  }, [radio]);
+  }, [radio, towersData]);
 
-  // Performance cap
-  const MAX_RENDER = 5000;
-  const toRender = filtered.slice(0, MAX_RENDER);
+  // Render every tower in the filtered set; CoverageMap uses Leaflet's
+  // canvas renderer so this stays smooth even at ~17k markers.
+  const toRender = filtered;
 
   // Mock agent/model response
   const mockAgentResponse = useMemo(
@@ -256,95 +284,31 @@ export default function CoverageMapPage() {
     return `tower_${Math.round(tower.lat * 1000000)}_${Math.round(tower.lon * 1000000)}`;
   }, []);
 
-  // State for map bounds tracking
-  const [mapBounds, setMapBounds] = useState(null);
-  const [fetchInProgress, setFetchInProgress] = useState(false);
-  const throttleRef = useRef({ lastRun: 0 });
-
-  // Fetch KPIs for visible towers
-  const fetchKPIs = async (towerIds) => {
-    if (!towerIds || towerIds.length === 0) return;
-    if (fetchInProgress) return;
-
-    // Cap at 1000 towers per request
-    const cappedIds = towerIds.slice(0, 1000);
-
-    try {
-      setFetchInProgress(true);
-      const res = await fetch(`${API_BASE}${KPIS_PATH}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tower_ids: cappedIds,
-          options: {
-            mode: "sim",
-            tick_ms: 1000,
-          },
-        }),
-      });
-
-      if (!res.ok) {
-        const text = await res.text();
-        console.error(`KPI fetch failed ${res.status}: ${text}`);
-        return;
-      }
-
-      const data = await res.json();
-      if (data.kpis) {
-        setKpiByTowerId((prev) => ({ ...prev, ...data.kpis }));
-        if (import.meta.env.DEV) {
-          console.log(`[KPI] Fetched ${Object.keys(data.kpis).length} KPIs`);
-        }
-      }
-    } catch (e) {
-      console.error("Error fetching KPIs:", e);
-    } finally {
-      setFetchInProgress(false);
-    }
-  };
-
-  // Throttled fetch function (1.5 seconds)
-  const throttledFetchKPIs = (towerIds) => {
-    const now = Date.now();
-    if (now - throttleRef.current.lastRun >= 1500) {
-      throttleRef.current.lastRun = now;
-      fetchKPIs(towerIds);
-    }
-  };
-
-  // Compute visible towers when map bounds change
+  // KPIs are simulated client-side (the backend's /api/kpis was already just
+  // a deterministic stub), so the map works standalone with no server.
   useEffect(() => {
-    if (!mapBounds) return;
-
-    const visibleTowerIds = toRender
-      .filter((tower) => {
-        const lat = tower.lat;
-        const lon = tower.lon;
-        return (
-          lat >= mapBounds.south &&
-          lat <= mapBounds.north &&
-          lon >= mapBounds.west &&
-          lon <= mapBounds.east
-        );
-      })
-      .map(getTowerId);
-
-    if (visibleTowerIds.length > 0) {
-      throttledFetchKPIs(visibleTowerIds);
+    const next = {};
+    for (const tower of toRender) {
+      next[getTowerId(tower)] = simulateKpi(getTowerId(tower));
     }
-  }, [mapBounds, toRender, getTowerId]);
+    setKpiByTowerId(next);
+  }, [toRender, getTowerId]);
 
   return (
     <div style={{ padding: 16 }}>
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
         <div>
-          <h1 style={{ margin: 0 }}>TELUS Towers – Live KPIs + Impact Areas</h1>
+          <h1 style={{ margin: 0 }}>TelusGuardAI — TELUS Coverage & Impact Analysis</h1>
           <p style={{ marginTop: 6, opacity: 0.75 }}>
-            Showing {toRender.length} / {filtered.length} towers
+            {towersLoading
+              ? "Loading tower data…"
+              : towersError
+              ? `Failed to load tower data: ${towersError}`
+              : `Showing ${toRender.length} / ${filtered.length} towers`}
+            {DEMO_MODE && " · Demo mode — analysis uses sample data (no live backend)"}
           </p>
         </div>
-        <Link to="/">Back</Link>
       </div>
 
       {/* Controls */}
@@ -414,9 +378,9 @@ export default function CoverageMapPage() {
             cursor: isRunning ? "not-allowed" : "pointer",
             opacity: isRunning ? 0.7 : 1,
           }}
-          title={`POST ${API_BASE}${ANALYZE_PATH}`}
+          title={DEMO_MODE ? "Demo mode: loads the bundled sample scenario" : `POST ${API_BASE}${ANALYZE_PATH}`}
         >
-          {isRunning ? "Analyzing..." : "Run analysis"}
+          {isRunning ? "Analyzing..." : DEMO_MODE ? "Load demo analysis" : "Run analysis"}
         </button>
 
         {agentError && (
@@ -438,8 +402,11 @@ export default function CoverageMapPage() {
         )}
 
         <div style={{ opacity: 0.75 }}>
-          KPIs from backend
-          {agentResponse ? " (Agent: backend)" : " (Agent: mock)"}
+          {agentResponse?._demo
+            ? "Agent: demo data"
+            : agentResponse
+            ? "Agent: backend"
+            : "Agent: sample scenario"}
         </div>
       </div>
 
@@ -457,7 +424,6 @@ export default function CoverageMapPage() {
           focusBounds={focusBounds}
           impactAreas={impactAreasWithCounts}
           onSelectImpactArea={selectImpactArea}
-          onMapBoundsChange={setMapBounds}
           onSelectTower={(id) => {
             setSelectedTower(id);
             setSelectedAreaId(null);

@@ -2,7 +2,7 @@ import csv
 import json
 
 INPUT_CSV = "./src/data/302.csv"
-OUTPUT_JSON = "./src/data/telus_towers.json"
+OUTPUT_JSON = "./public/telus_towers.json"
 
 TELUS_MNC = 720     # TELUS
 CANADA_MCC = 302
