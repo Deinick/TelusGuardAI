@@ -383,6 +383,17 @@ export default function CoverageMapPage() {
           {isRunning ? "Analyzing..." : DEMO_MODE ? "Load demo analysis" : "Run analysis"}
         </button>
 
+        {DEMO_MODE && (
+          <a
+            href="https://github.com/Deinick/TelusGuardAI"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ opacity: 0.75 }}
+          >
+            Want the live AI pipeline? Clone the repo and run it locally →
+          </a>
+        )}
+
         {agentError && (
           <div style={{ color: "#ff6b6b", maxWidth: 520 }}>
             {agentError}
