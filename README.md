@@ -6,6 +6,10 @@ An AI-powered platform for analyzing TELUS network service disruptions during na
 
 ---
 
+# Demo Video:
+https://youtu.be/IS280NmH2U0
+
+---
 ## Run Locally
 
 This is the full experience: real multi-agent backend + the complete dashboard (Event Panel, Coverage Map, Details/Impact panels).
