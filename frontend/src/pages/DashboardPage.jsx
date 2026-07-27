@@ -116,17 +116,18 @@ export default function DashboardPage({
     return impactAreas.map((a) => ({ ...a, towerCount: countTowersInArea(a, toRender) }));
   }, [impactAreas, toRender]);
 
-  // Reset local selection whenever a new analysis result arrives, following
+  // Auto-select the highest-severity impact area whenever a new analysis
+  // result arrives, so the report panel and map zoom update immediately
+  // instead of requiring the user to open "Impact Areas" manually. Follows
   // React's recommended "adjust state during render" pattern instead of an
   // effect (https://react.dev/learn/you-might-not-need-an-effect).
   const [prevAgentResponse, setPrevAgentResponse] = useState(agentResponse);
   if (agentResponse !== prevAgentResponse) {
     setPrevAgentResponse(agentResponse);
-    if (agentResponse) {
-      setSelectedAreaId(null);
-      setSelectedTower(null);
-      setFocusBounds(null);
-    }
+    setSelectedTower(null);
+    const topArea = agentResponse ? impactAreasWithCounts[0] : null;
+    setSelectedAreaId(topArea?.id ?? null);
+    setFocusBounds(topArea?.bounds ?? null);
   }
 
   const getTowerId = useCallback((t) => t.id ?? `tower_${Math.round(t.lat * 1e6)}_${Math.round(t.lon * 1e6)}`, []);
