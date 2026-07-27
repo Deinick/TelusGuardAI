@@ -197,7 +197,7 @@ class NetworkImpactOrchestrator:
         
         filtered_events = []
 
-        min_confidence = 0.2
+        min_confidence = 0
         
         for event in events:
             # Filter areas by confidence

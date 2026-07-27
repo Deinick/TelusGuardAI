@@ -94,7 +94,7 @@ python convert_csv_to_json.py
 
 ### Prerequisites
 
-- **Python 3.10+**
+- **Python 3.9+** (uses `python3`; macOS/Linux don't ship a bare `python` command by default)
 - **Node.js 18+** and npm
 - Frontend: `VITE_API_BASE_URL` pointing at the backend (default: `http://127.0.0.1:5001`)
 
@@ -103,10 +103,10 @@ python convert_csv_to_json.py
 ```bash
 git clone https://github.com/Deinick/TelusGuardAI.git
 cd TelusGuardAI/backend
-python -m venv venv
+python3 -m venv venv
 source venv/bin/activate   # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-python app.py
+python app.py   # venv's `python` now points at python3
 ```
 
 The API runs at **http://127.0.0.1:5001** by default.

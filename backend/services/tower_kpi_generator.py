@@ -1,12 +1,13 @@
-import hashlib
-from typing import Dict, Any, List, Optional
+import random
+from typing import Dict, Any, List
 
 
 def assign_tower_profiles(towers: List[Dict[str, Any]], seed: int = 42) -> Dict[str, Dict[str, Any]]:
     """
-    Assign each tower a weight + capacity. Same (tower_id, seed) always yields
-    the same weight, regardless of tower set size or order (deterministic).
+    Assign each tower a weight + capacity so each behaves slightly differently.
+    Returns dict: tower_id -> profile
     """
+    random.seed(seed)
     profiles: Dict[str, Dict[str, Any]] = {}
 
     for t in towers:
@@ -19,9 +20,7 @@ def assign_tower_profiles(towers: List[Dict[str, Any]], seed: int = 42) -> Dict[
             "GSM": 550
         }.get(radio, 800)
 
-        # Deterministic weight in [0.7, 1.3] from tower_id + seed
-        h = int(hashlib.sha256(f"{tid}_{seed}".encode()).hexdigest(), 16) % 10**6
-        weight = 0.7 + (h / 10**6) * 0.6
+        weight = random.uniform(0.7, 1.3)
 
         profiles[tid] = {
             "weight": weight,
@@ -37,34 +36,20 @@ def assign_tower_profiles(towers: List[Dict[str, Any]], seed: int = 42) -> Dict[
 def generate_kpis_for_towers(
     baseline_internet: float,
     tower_profiles: Dict[str, Dict[str, Any]],
-    incident_engine=None,
-    *,
-    in_real_anomaly: bool = False,
-    baseline_downstream: Optional[float] = None,
+    incident_engine=None
 ) -> Dict[str, Dict[str, Any]]:
     """
-    Convert baseline internet (and optional downstream) -> per-tower KPIs.
-
-    - in_real_anomaly: when True, apply a modest overlay (+1.5% loss, +15% latency)
-      to simulate Zenodo-labeled anomaly windows.
-    - baseline_downstream: if set, effective_baseline = 0.85*internet + 0.15*downstream
-      for traffic; otherwise use baseline_internet only.
-
+    Convert baseline internet value -> per-tower KPIs
     Output: tower_id -> KPI dict
     """
     out: Dict[str, Dict[str, Any]] = {}
-
-    if baseline_downstream is not None:
-        effective_baseline = 0.85 * baseline_internet + 0.15 * baseline_downstream
-    else:
-        effective_baseline = baseline_internet
 
     for tid, p in tower_profiles.items():
         weight = p["weight"]
         capacity = p["capacity"]
 
         # 1) Traffic per tower
-        traffic = effective_baseline * weight
+        traffic = baseline_internet * weight
 
         # Incident effects (optional)
         incident = incident_engine.get_incident(tid) if incident_engine else None
@@ -100,12 +85,6 @@ def generate_kpis_for_towers(
                 latency_ms = max(latency_ms, 150.0)
             elif incident["type"] == "LOSS_SPIKE":
                 loss_pct = min(15.0, loss_pct + incident["extra_loss_pct"])
-
-        # Zenodo real-anomaly overlay: modest extra loss and latency
-        if in_real_anomaly:
-            loss_pct += 1.5
-            latency_ms *= 1.15
-        loss_pct = min(loss_pct, 15.0)
 
         # 5) Users estimate
         users = int(50 + traffic * 0.4)
